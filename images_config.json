@@ -1,0 +1,19 @@
+{
+  "description": "画像ファイル設定 - ここに追加した画像がゲームで使用されます",
+  "gohoubi_images": [
+    "akagami_image.png",
+    "syoujikifudousann.png", 
+    "lastmaile.png",
+    "taigannnogaji_megane.png"
+  ],
+  "zannen_images": [
+    "strong_mosaic_akagami_image.png",
+    "strong_mosaic_syoujikifudousann.png",
+    "strong_mosaic_lastmaile.png", 
+    "strong_mosaic_generated_image.png"
+  ],
+  "auto_detect": {
+    "enabled": true,
+    "description": "trueの場合、設定ファイルに加えて自動検出も実行します"
+  }
+} 
