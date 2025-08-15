@@ -24,7 +24,7 @@
         function displayTestResults() {
             const resultsDiv = document.getElementById('test-results');
             
-            for (let level = 1; level <= 6; level++) {
+                            for (let level = 1; level <= 3; level++) {
                 const vocabulary = getHSKVocabulary(level);
                 
                 const section = document.createElement('div');
@@ -58,11 +58,11 @@
                 <h2>統計情報</h2>
                 <p>総語彙数: ${allVocab.length}語</p>
                 <p>各等級の語彙数:</p>
-                <ul>
-                    ${[1,2,3,4,5,6].map(level => 
-                        `<li>HSK${level}級: ${getHSKVocabulary(level).length}語</li>`
-                    ).join('')}
-                </ul>
+                                        <ul>
+                            ${[1,2,3].map(level => 
+                                `<li>HSK${level}級: ${getHSKVocabulary(level).length}語</li>`
+                            ).join('')}
+                        </ul>
             `;
             resultsDiv.appendChild(statsSection);
         }

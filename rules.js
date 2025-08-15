@@ -19,17 +19,7 @@ const gameRules = {
             5: { name: "HSK3級-文字", description: "HSK3級語彙を見て日本語を選ぼう", type: "text", hskLevel: 3 },
             6: { name: "HSK3級-音声", description: "HSK3級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 3 },
             
-            // HSK4級
-            7: { name: "HSK4級-文字", description: "HSK4級語彙を見て日本語を選ぼう", type: "text", hskLevel: 4 },
-            8: { name: "HSK4級-音声", description: "HSK4級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 4 },
             
-            // HSK5級
-            9: { name: "HSK5級-文字", description: "HSK5級語彙を見て日本語を選ぼう", type: "text", hskLevel: 5 },
-            10: { name: "HSK5級-音声", description: "HSK5級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 5 },
-            
-            // HSK6級
-            11: { name: "HSK6級-文字", description: "HSK6級語彙を見て日本語を選ぼう", type: "text", hskLevel: 6 },
-            12: { name: "HSK6級-音声", description: "HSK6級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 6 }
         }
     },
     

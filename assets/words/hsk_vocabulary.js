@@ -866,23 +866,7 @@ const hskVocabulary = {
         { id: "yi", chinese: "亿", pinyin: "yì", japanese: "億", category: "数詞" }
     ],
 
-    // HSK4級 (600語) - 基本語彙リスト（一部実装、拡張予定）
-    hsk4: [
-        { id: "zhengce", chinese: "政策", pinyin: "zhèng cè", japanese: "政策", category: "名詞" },
-        // ... 残り599語は後で追加
-    ],
 
-    // HSK5級 (1300語) - 基本語彙リスト（一部実装、拡張予定）
-    hsk5: [
-        { id: "xianxiang", chinese: "现象", pinyin: "xiàn xiàng", japanese: "現象", category: "名詞" },
-        // ... 残り1299語は後で追加
-    ],
-
-    // HSK6級 (2500語) - 基本語彙リスト（一部実装、拡張予定）
-    hsk6: [
-        { id: "weishengwuxue", chinese: "微生物学", pinyin: "wēi shēng wù xué", japanese: "微生物学", category: "名詞" },
-        // ... 残り2499語は後で追加
-    ]
 };
 
 // HSK語彙取得関数
@@ -893,7 +877,7 @@ function getHSKVocabulary(level) {
 // 全HSK語彙取得関数
 function getAllHSKVocabulary() {
     const allWords = [];
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 3; i++) {
         allWords.push(...getHSKVocabulary(i));
     }
     return allWords;
