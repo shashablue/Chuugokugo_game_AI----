@@ -86,7 +86,7 @@ body::before {
 }
 
 .game-title {
-    font-family: 'Hiragino Mincho ProN', 'Noto Serif SC', serif;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
     color: #2F4F4F;
     font-size: 36px;
     font-weight: 700;
@@ -146,7 +146,7 @@ body::before {
 }
 
 .set-title {
-    font-family: 'Hiragino Mincho ProN', serif;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
     font-size: 18px;
     color: #4682B4;
     margin-bottom: 20px;
@@ -394,7 +394,7 @@ body::before {
 }
 
 #chinese-text {
-    font-family: 'Hiragino Mincho ProN', 'Noto Serif SC', serif;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
     font-size: 56px;
     font-weight: 700;
     color: #4682B4;
@@ -609,7 +609,7 @@ body::before {
 }
 
 .result-content h2 {
-    font-family: 'Hiragino Mincho ProN', serif;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
     font-size: 24px;
     color: #2F4F4F;
     margin-bottom: 35px;
@@ -657,7 +657,7 @@ body::before {
 }
 
 #praise-chinese {
-    font-family: 'Hiragino Mincho ProN', 'Noto Serif SC', serif;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
     font-size: 36px;
     font-weight: 700;
     color: #4682B4;
