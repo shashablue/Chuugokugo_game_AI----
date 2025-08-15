@@ -24,6 +24,12 @@ class ChineseVocabGame {
             level4Btn: document.getElementById('level4-btn'),
             level5Btn: document.getElementById('level5-btn'),
             level6Btn: document.getElementById('level6-btn'),
+            level7Btn: document.getElementById('level7-btn'),
+            level8Btn: document.getElementById('level8-btn'),
+            level9Btn: document.getElementById('level9-btn'),
+            level10Btn: document.getElementById('level10-btn'),
+            level11Btn: document.getElementById('level11-btn'),
+            level12Btn: document.getElementById('level12-btn'),
             
             // ゲーム画面
             currentLevel: document.getElementById('current-level'),
@@ -77,6 +83,12 @@ class ChineseVocabGame {
         this.elements.level4Btn.addEventListener('click', () => this.startLevel(4));
         this.elements.level5Btn.addEventListener('click', () => this.startLevel(5));
         this.elements.level6Btn.addEventListener('click', () => this.startLevel(6));
+        this.elements.level7Btn.addEventListener('click', () => this.startLevel(7));
+        this.elements.level8Btn.addEventListener('click', () => this.startLevel(8));
+        this.elements.level9Btn.addEventListener('click', () => this.startLevel(9));
+        this.elements.level10Btn.addEventListener('click', () => this.startLevel(10));
+        this.elements.level11Btn.addEventListener('click', () => this.startLevel(11));
+        this.elements.level12Btn.addEventListener('click', () => this.startLevel(12));
         
         // ゲーム内ボタン
         
@@ -101,23 +113,23 @@ class ChineseVocabGame {
         
         // レベル設定を取得
         const levelConfig = gameRules.settings.levels[level];
-        this.gameState.questionSet = levelConfig.set;
+        this.gameState.hskLevel = levelConfig.hskLevel;
         
-        // 問題生成（セットから選択）
-        this.generateQuestionsFromSet();
+        // 問題生成（HSK等級から選択）
+        this.generateQuestionsFromHSKLevel();
         
         // UI更新
-        this.elements.currentLevel.textContent = `レベル${level}`;
+        this.elements.currentLevel.textContent = levelConfig.name;
         this.updateDisplay();
         
         this.showScreen('game');
         this.loadQuestion();
     }
     
-    generateQuestionsFromSet() {
-        // 指定されたセットから問題を生成
-        this.gameState.questions = gameRules.getRandomWordsFromSet(
-            this.gameState.questionSet, 
+    generateQuestionsFromHSKLevel() {
+        // 指定されたHSK等級から問題を生成
+        this.gameState.questions = gameRules.getRandomWordsFromHSKLevel(
+            this.gameState.hskLevel, 
             this.gameState.totalQuestions
         );
     }
@@ -181,18 +193,18 @@ class ChineseVocabGame {
     }
     
     generateChoices(question) {
-        // 現在のセットから間違い選択肢を生成
-        const setNumber = gameRules.settings.levels[this.gameState.selectedLevel].set;
-        const setWords = gameRules.getVocabularyBySet(setNumber);
+        // 現在のHSK等級から間違い選択肢を生成
+        const hskLevel = gameRules.settings.levels[this.gameState.selectedLevel].hskLevel;
+        const levelWords = gameRules.getVocabularyByHSKLevel(hskLevel);
         
         console.log('=== 選択肢生成デバッグ ===');
         console.log('正解:', question.japanese);
-        console.log('セット番号:', setNumber);
-        console.log('セット内語彙数:', setWords.length);
-        console.log('セット内語彙:', setWords.map(w => w.japanese));
+        console.log('HSK等級:', hskLevel);
+        console.log('等級内語彙数:', levelWords.length);
+        console.log('等級内語彙:', levelWords.map(w => w.japanese));
         
         // 正解の質問オブジェクトを渡して間違い選択肢を生成
-        const wrongOptions = gameRules.generateWrongOptions(question, setWords, 3);
+        const wrongOptions = gameRules.generateWrongOptions(question, levelWords, 3);
         console.log('生成された間違い選択肢:', wrongOptions);
         
         // 正解と間違い選択肢を結合
@@ -330,7 +342,8 @@ class ChineseVocabGame {
         this.elements.scorePercent.textContent = percentage;
         
         const level = this.gameState.selectedLevel;
-        this.elements.resultTitle.textContent = `レベル${level} 最終結果`;
+        const levelConfig = gameRules.settings.levels[level];
+        this.elements.resultTitle.textContent = `${levelConfig.name} 最終結果`;
         
         // ペアレベルボタンの表示制御
         this.setupPairLevelButton();
@@ -355,11 +368,14 @@ class ChineseVocabGame {
     }
     
     getPairLevel(level) {
-        // レベルのペア関係
+        // レベルのペア関係（HSK等級別）
         const pairs = {
-            1: 2, 2: 1, // セット1
-            3: 4, 4: 3, // セット2  
-            5: 6, 6: 5  // セット3
+            1: 2, 2: 1,   // HSK1級
+            3: 4, 4: 3,   // HSK2級  
+            5: 6, 6: 5,   // HSK3級
+            7: 8, 8: 7,   // HSK4級
+            9: 10, 10: 9, // HSK5級
+            11: 12, 12: 11 // HSK6級
         };
         return pairs[level];
     }

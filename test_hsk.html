@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK語彙データテスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .word-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .word-item { padding: 5px; background: #f5f5f5; border-radius: 3px; }
+        .chinese { font-weight: bold; color: #d32f2f; }
+        .pinyin { color: #1976d2; font-style: italic; }
+        .japanese { color: #388e3c; }
+    </style>
+</head>
+<body>
+    <h1>HSK語彙データ確認</h1>
+    
+    <div id="test-results"></div>
+    
+    <script src="assets/words/hsk_vocabulary.js"></script>
+    <script>
+        function displayTestResults() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            for (let level = 1; level <= 6; level++) {
+                const vocabulary = getHSKVocabulary(level);
+                
+                const section = document.createElement('div');
+                section.className = 'test-section';
+                section.innerHTML = `
+                    <h2>HSK${level}級 (${vocabulary.length}語)</h2>
+                    <div class="word-list" id="hsk${level}-list"></div>
+                `;
+                
+                resultsDiv.appendChild(section);
+                
+                const wordList = document.getElementById(`hsk${level}-list`);
+                vocabulary.forEach(word => {
+                    const wordItem = document.createElement('div');
+                    wordItem.className = 'word-item';
+                    wordItem.innerHTML = `
+                        <div class="chinese">${word.chinese}</div>
+                        <div class="pinyin">${word.pinyin}</div>
+                        <div class="japanese">${word.japanese}</div>
+                        <div style="font-size: 0.8em; color: #666;">${word.category}</div>
+                    `;
+                    wordList.appendChild(wordItem);
+                });
+            }
+            
+            // 統計情報
+            const allVocab = getAllHSKVocabulary();
+            const statsSection = document.createElement('div');
+            statsSection.className = 'test-section';
+            statsSection.innerHTML = `
+                <h2>統計情報</h2>
+                <p>総語彙数: ${allVocab.length}語</p>
+                <p>各等級の語彙数:</p>
+                <ul>
+                    ${[1,2,3,4,5,6].map(level => 
+                        `<li>HSK${level}級: ${getHSKVocabulary(level).length}語</li>`
+                    ).join('')}
+                </ul>
+            `;
+            resultsDiv.appendChild(statsSection);
+        }
+        
+        // ページ読み込み時に実行
+        document.addEventListener('DOMContentLoaded', displayTestResults);
+    </script>
+</body>
+</html> 
