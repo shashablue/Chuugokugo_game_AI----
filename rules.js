@@ -1,18 +1,25 @@
-// 中国語学習ゲーム - 語彙データベース (HSK3級対応)
+// 中国語学習ゲーム - HSK等級別対応
 const gameRules = {
     game_title: "推しと学ぶ中国語",
     
     // ゲーム設定
     settings: {
-        questionsPerLevel: 3,
+        questionsPerLevel: 5, // 問題数を5問に増加
         passingScore: 0.8, // 8割
         levels: {
-            1: { name: "レベル1", description: "基本語彙を見て日本語を選ぼう", type: "text", set: 1 },
-            2: { name: "レベル2", description: "基本語彙の音声を聞いて日本語を選ぼう", type: "audio", set: 1 },
-            3: { name: "レベル3", description: "色・数字を見て日本語を選ぼう", type: "text", set: 2 },
-            4: { name: "レベル4", description: "色・数字の音声を聞いて日本語を選ぼう", type: "audio", set: 2 },
-            5: { name: "レベル5", description: "動物・挨拶を見て日本語を選ぼう", type: "text", set: 3 },
-            6: { name: "レベル6", description: "動物・挨拶の音声を聞いて日本語を選ぼう", type: "audio", set: 3 }
+            // HSK1級
+            1: { name: "HSK1級-文字", description: "HSK1級語彙を見て日本語を選ぼう", type: "text", hskLevel: 1 },
+            2: { name: "HSK1級-音声", description: "HSK1級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 1 },
+            
+            // HSK2級
+            3: { name: "HSK2級-文字", description: "HSK2級語彙を見て日本語を選ぼう", type: "text", hskLevel: 2 },
+            4: { name: "HSK2級-音声", description: "HSK2級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 2 },
+            
+            // HSK3級
+            5: { name: "HSK3級-文字", description: "HSK3級語彙を見て日本語を選ぼう", type: "text", hskLevel: 3 },
+            6: { name: "HSK3級-音声", description: "HSK3級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 3 },
+            
+            
         }
     },
     
@@ -25,7 +32,105 @@ const gameRules = {
         { chinese: "完美！", pinyin: "wán měi!", japanese: "完璧！" }
     ],
     
-    // セット別語彙データベース
+    // HSK等級別語彙を取得
+    getVocabularyByHSKLevel(hskLevel) {
+        // 外部のHSK語彙データベースを使用
+        if (typeof getHSKVocabulary === 'function') {
+            return getHSKVocabulary(hskLevel);
+        }
+        // フォールバック：従来のセットデータ（開発用）
+        return this.vocabularySets[`set${Math.min(hskLevel, 3)}`] || [];
+    },
+    
+    // 指定HSK等級からランダムに語彙を選択するメソッド
+    getRandomWordsFromHSKLevel(hskLevel, count = 5) {
+        const levelWords = this.getVocabularyByHSKLevel(hskLevel);
+        if (levelWords.length === 0) {
+            console.warn(`HSK${hskLevel}級の語彙が見つかりません`);
+            return [];
+        }
+        const shuffled = levelWords.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    },
+    
+    // 全語彙を取得するヘルパーメソッド（後方互換性のため）
+    getAllVocabulary() {
+        // HSK語彙データベースが利用可能な場合
+        if (typeof getAllHSKVocabulary === 'function') {
+            return getAllHSKVocabulary();
+        }
+        
+        // フォールバック：従来のセットデータ
+        const allWords = [];
+        Object.values(this.vocabularySets).forEach(setWords => {
+            allWords.push(...setWords);
+        });
+        return allWords;
+    },
+    
+    // 指定セットの語彙を取得（後方互換性のため）
+    getVocabularyBySet(setNumber) {
+        return this.vocabularySets[`set${setNumber}`] || [];
+    },
+    
+    // 指定セットからランダムに語彙を選択するメソッド（後方互換性のため）
+    getRandomWordsFromSet(setNumber, count = 3) {
+        const setWords = this.getVocabularyBySet(setNumber);
+        const shuffled = setWords.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    },
+    
+    // ランダムに語彙を選択するメソッド（後方互換性のため）
+    getRandomWords(count = 3) {
+        const allWords = this.getAllVocabulary();
+        const shuffled = allWords.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    },
+    
+    // 間違い選択肢を生成するメソッド（HSK等級対応）
+    generateWrongOptions(correctAnswer, allWords, count = 3) {
+        // 正解の日本語を取得（文字列または単語オブジェクトの両方に対応）
+        const correctJapanese = typeof correctAnswer === 'string' ? correctAnswer : correctAnswer.japanese;
+        
+        // 正解と異なる日本語訳を持つ単語を抽出
+        const availableWords = allWords.filter(word => word.japanese !== correctJapanese);
+        
+        // 利用可能な単語が十分にあるかチェック
+        if (availableWords.length < count) {
+            console.warn(`利用可能な単語が不足しています。要求: ${count}, 利用可能: ${availableWords.length}`);
+        }
+        
+        // 重複しないようにシャッフルして必要数を選択
+        const shuffled = availableWords.sort(() => 0.5 - Math.random());
+        const selectedWords = [];
+        const usedJapanese = new Set([correctJapanese]); // 正解も重複チェック用に追加
+        
+        // 最大試行回数を設定して無限ループを防ぐ
+        let attempts = 0;
+        const maxAttempts = availableWords.length * 2;
+        
+        for (const word of shuffled) {
+            if (selectedWords.length >= count || attempts >= maxAttempts) break;
+            attempts++;
+            
+            // まだ使用されていない日本語訳のみ追加
+            if (!usedJapanese.has(word.japanese)) {
+                selectedWords.push(word);
+                usedJapanese.add(word.japanese);
+            }
+        }
+        
+        // 必要な数に満たない場合は警告を出す
+        if (selectedWords.length < count) {
+            console.warn(`選択肢が不足しています。必要: ${count}, 取得: ${selectedWords.length}`);
+            console.warn('利用可能な語彙:', availableWords.map(w => w.japanese));
+            console.warn('選択された語彙:', selectedWords.map(w => w.japanese));
+        }
+        
+        return selectedWords.map(word => word.japanese);
+    },
+
+    // セット別語彙データベース（後方互換性のため）
     vocabularySets: {
         // セット1: 基本語彙
         set1: [
@@ -68,76 +173,5 @@ const gameRules = {
             { id: "zaoshang", chinese: "早上好", pinyin: "zǎo shàng hǎo", japanese: "おはよう", category: "挨拶" },
             { id: "wanshang", chinese: "晚上好", pinyin: "wǎn shàng hǎo", japanese: "こんばんは", category: "挨拶" }
         ]
-    },
-    
-    // 全語彙を取得するヘルパーメソッド（後方互換性のため）
-    getAllVocabulary() {
-        const allWords = [];
-        Object.values(this.vocabularySets).forEach(setWords => {
-            allWords.push(...setWords);
-        });
-        return allWords;
-    },
-    
-    // 指定セットの語彙を取得
-    getVocabularyBySet(setNumber) {
-        return this.vocabularySets[`set${setNumber}`] || [];
-    },
-    
-    // 指定セットからランダムに語彙を選択するメソッド
-    getRandomWordsFromSet(setNumber, count = 3) {
-        const setWords = this.getVocabularyBySet(setNumber);
-        const shuffled = setWords.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    },
-    
-    // ランダムに語彙を選択するメソッド（後方互換性のため）
-    getRandomWords(count = 3) {
-        const allWords = this.getAllVocabulary();
-        const shuffled = allWords.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    },
-    
-    // 間違い選択肢を生成するメソッド
-    generateWrongOptions(correctAnswer, allWords, count = 3) {
-        // 正解の日本語を取得（文字列または単語オブジェクトの両方に対応）
-        const correctJapanese = typeof correctAnswer === 'string' ? correctAnswer : correctAnswer.japanese;
-        
-        // 正解と異なる日本語訳を持つ単語を抽出
-        const availableWords = allWords.filter(word => word.japanese !== correctJapanese);
-        
-        // 利用可能な単語が十分にあるかチェック
-        if (availableWords.length < count) {
-            console.warn(`利用可能な単語が不足しています。要求: ${count}, 利用可能: ${availableWords.length}`);
-        }
-        
-        // 重複しないようにシャッフルして必要数を選択
-        const shuffled = availableWords.sort(() => 0.5 - Math.random());
-        const selectedWords = [];
-        const usedJapanese = new Set([correctJapanese]); // 正解も重複チェック用に追加
-        
-        // 最大試行回数を設定して無限ループを防ぐ
-        let attempts = 0;
-        const maxAttempts = availableWords.length * 2;
-        
-        for (const word of shuffled) {
-            if (selectedWords.length >= count || attempts >= maxAttempts) break;
-            attempts++;
-            
-            // まだ使用されていない日本語訳のみ追加
-            if (!usedJapanese.has(word.japanese)) {
-                selectedWords.push(word);
-                usedJapanese.add(word.japanese);
-            }
-        }
-        
-        // 必要な数に満たない場合は警告を出す
-        if (selectedWords.length < count) {
-            console.warn(`選択肢が不足しています。必要: ${count}, 取得: ${selectedWords.length}`);
-            console.warn('利用可能な語彙:', availableWords.map(w => w.japanese));
-            console.warn('選択された語彙:', selectedWords.map(w => w.japanese));
-        }
-        
-        return selectedWords.map(word => word.japanese);
     }
 }; 

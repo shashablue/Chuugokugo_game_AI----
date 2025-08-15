@@ -24,8 +24,10 @@ class ChineseVocabGame {
             level4Btn: document.getElementById('level4-btn'),
             level5Btn: document.getElementById('level5-btn'),
             level6Btn: document.getElementById('level6-btn'),
+
             
             // ゲーム画面
+            backToHomeBtn: document.getElementById('back-to-home-btn'),
             currentLevel: document.getElementById('current-level'),
             progressIndicator: document.getElementById('progress-indicator'),
             correctCount: document.getElementById('correct-count'),
@@ -40,6 +42,9 @@ class ChineseVocabGame {
             // 選択肢
             choiceBtns: document.querySelectorAll('.choice-btn'),
             feedbackMessage: document.getElementById('feedback-message'),
+            audioAnswerDisplay: document.getElementById('audio-answer-display'),
+            audioAnswerChinese: document.getElementById('audio-answer-chinese'),
+            audioAnswerPinyin: document.getElementById('audio-answer-pinyin'),
             
             // 結果画面
             resultTitle: document.getElementById('result-title'),
@@ -60,7 +65,61 @@ class ChineseVocabGame {
         this.currentQuestion = null;
         this.autoPlayTimeout = null;
         this.lastDisplayedImages = {};
+        
+        // 音効果のための音声要素を作成
+        this.initializeSounds();
+        
         this.initializeGame();
+    }
+
+    initializeSounds() {
+        // Web Audio APIを使用してシンプルな音効果を生成
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('Audio context not supported');
+            this.audioContext = null;
+        }
+    }
+
+    playCorrectSound() {
+        if (!this.audioContext) return;
+        
+        // 正解音：明るいピンポン音
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(1000, this.audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 0.3);
+    }
+
+    playIncorrectSound() {
+        if (!this.audioContext) return;
+        
+        // 不正解音：低いブー音
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+        oscillator.type = 'sawtooth';
+        
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 0.5);
     }
 
     initializeGame() {
@@ -77,8 +136,10 @@ class ChineseVocabGame {
         this.elements.level4Btn.addEventListener('click', () => this.startLevel(4));
         this.elements.level5Btn.addEventListener('click', () => this.startLevel(5));
         this.elements.level6Btn.addEventListener('click', () => this.startLevel(6));
+
         
         // ゲーム内ボタン
+        this.elements.backToHomeBtn.addEventListener('click', () => this.goHome());
         
         // 結果画面ボタン
         this.elements.retryBtn.addEventListener('click', () => this.retryLevel());
@@ -101,23 +162,23 @@ class ChineseVocabGame {
         
         // レベル設定を取得
         const levelConfig = gameRules.settings.levels[level];
-        this.gameState.questionSet = levelConfig.set;
+        this.gameState.hskLevel = levelConfig.hskLevel;
         
-        // 問題生成（セットから選択）
-        this.generateQuestionsFromSet();
+        // 問題生成（HSK等級から選択）
+        this.generateQuestionsFromHSKLevel();
         
         // UI更新
-        this.elements.currentLevel.textContent = `レベル${level}`;
+        this.elements.currentLevel.textContent = levelConfig.name;
         this.updateDisplay();
         
         this.showScreen('game');
         this.loadQuestion();
     }
     
-    generateQuestionsFromSet() {
-        // 指定されたセットから問題を生成
-        this.gameState.questions = gameRules.getRandomWordsFromSet(
-            this.gameState.questionSet, 
+    generateQuestionsFromHSKLevel() {
+        // 指定されたHSK等級から問題を生成
+        this.gameState.questions = gameRules.getRandomWordsFromHSKLevel(
+            this.gameState.hskLevel, 
             this.gameState.totalQuestions
         );
     }
@@ -181,18 +242,18 @@ class ChineseVocabGame {
     }
     
     generateChoices(question) {
-        // 現在のセットから間違い選択肢を生成
-        const setNumber = gameRules.settings.levels[this.gameState.selectedLevel].set;
-        const setWords = gameRules.getVocabularyBySet(setNumber);
+        // 現在のHSK等級から間違い選択肢を生成
+        const hskLevel = gameRules.settings.levels[this.gameState.selectedLevel].hskLevel;
+        const levelWords = gameRules.getVocabularyByHSKLevel(hskLevel);
         
         console.log('=== 選択肢生成デバッグ ===');
         console.log('正解:', question.japanese);
-        console.log('セット番号:', setNumber);
-        console.log('セット内語彙数:', setWords.length);
-        console.log('セット内語彙:', setWords.map(w => w.japanese));
+        console.log('HSK等級:', hskLevel);
+        console.log('等級内語彙数:', levelWords.length);
+        console.log('等級内語彙:', levelWords.map(w => w.japanese));
         
         // 正解の質問オブジェクトを渡して間違い選択肢を生成
-        const wrongOptions = gameRules.generateWrongOptions(question, setWords, 3);
+        const wrongOptions = gameRules.generateWrongOptions(question, levelWords, 3);
         console.log('生成された間違い選択肢:', wrongOptions);
         
         // 正解と間違い選択肢を結合
@@ -280,9 +341,14 @@ class ChineseVocabGame {
         if (isCorrect) {
             this.gameState.correctAnswers++;
             this.showFeedback('正解！', 'correct');
+            this.playCorrectSound();
         } else {
             this.showFeedback('残念...', 'incorrect');
+            this.playIncorrectSound();
         }
+
+        // 音声問題の場合は中国語とピンインを表示
+        this.showAudioAnswer();
         
         // 次の問題へ
         setTimeout(() => {
@@ -299,6 +365,23 @@ class ChineseVocabGame {
     resetFeedback() {
         this.elements.feedbackMessage.textContent = '';
         this.elements.feedbackMessage.className = 'feedback-message';
+        this.hideAudioAnswer();
+    }
+
+    showAudioAnswer() {
+        // 音声問題の場合は中国語とピンインを表示
+        const levelConfig = gameRules.settings.levels[this.gameState.selectedLevel];
+        
+        if (levelConfig && levelConfig.type === 'audio' && this.currentQuestion) {
+            this.elements.audioAnswerChinese.textContent = this.currentQuestion.chinese;
+            this.elements.audioAnswerPinyin.textContent = this.currentQuestion.pinyin;
+            this.elements.audioAnswerDisplay.style.display = 'block';
+        }
+    }
+
+    hideAudioAnswer() {
+        // 音声答えの表示を隠す
+        this.elements.audioAnswerDisplay.style.display = 'none';
     }
     
     playAudio() {
@@ -330,7 +413,8 @@ class ChineseVocabGame {
         this.elements.scorePercent.textContent = percentage;
         
         const level = this.gameState.selectedLevel;
-        this.elements.resultTitle.textContent = `レベル${level} 最終結果`;
+        const levelConfig = gameRules.settings.levels[level];
+        this.elements.resultTitle.textContent = `${levelConfig.name} 最終結果`;
         
         // ペアレベルボタンの表示制御
         this.setupPairLevelButton();
@@ -355,11 +439,11 @@ class ChineseVocabGame {
     }
     
     getPairLevel(level) {
-        // レベルのペア関係
+        // レベルのペア関係（HSK等級別）
         const pairs = {
-            1: 2, 2: 1, // セット1
-            3: 4, 4: 3, // セット2  
-            5: 6, 6: 5  // セット3
+            1: 2, 2: 1,   // HSK1級
+            3: 4, 4: 3,   // HSK2級  
+            5: 6, 6: 5    // HSK3級
         };
         return pairs[level];
     }
@@ -600,6 +684,13 @@ class ChineseVocabGame {
         if (this.elements.playAudioBtn) {
             this.elements.playAudioBtn.addEventListener('click', () => {
                 this.playAudio();
+            });
+        }
+
+        // 戻るボタン
+        if (this.elements.backToHomeBtn) {
+            this.elements.backToHomeBtn.addEventListener('click', () => {
+                this.goHome();
             });
         }
 

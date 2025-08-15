@@ -322,6 +322,24 @@ body::before {
     border: 1px solid rgba(135, 206, 235, 0.3);
 }
 
+.back-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
 .level-info {
     display: flex;
     flex-direction: column;
@@ -601,6 +619,30 @@ body::before {
     background: rgba(255, 182, 193, 0.2);
     color: #8B0000;
     border: 1px solid rgba(255, 182, 193, 0.5);
+}
+
+.audio-answer-display {
+    background: rgba(135, 206, 235, 0.1);
+    border: 2px solid rgba(135, 206, 235, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.audio-answer-chinese {
+    font-size: 32px;
+    font-weight: bold;
+    color: #2F4F4F;
+    margin-bottom: 10px;
+    font-family: 'SimSun', 'MS Gothic', serif;
+}
+
+.audio-answer-pinyin {
+    font-size: 18px;
+    color: #1976d2;
+    font-style: italic;
+    font-weight: 500;
 }
 
 /* 結果画面 */
