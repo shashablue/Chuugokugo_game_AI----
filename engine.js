@@ -11,6 +11,14 @@ class ChineseVocabGame {
             questionSet: null
         };
         
+        // ===== セッション状態 =====
+        this.quizSession = {
+            level: null,           // 開始時に上書き
+            questions: [],         // 5問を保存
+            attempt: 0,            // 0=初回, 1=2回目...
+            imageIndex: null       // 1..5 固定画像番号（初回結果で決定）
+        };
+        
         this.elements = {
             // 画面要素
             startScreen: document.getElementById('start-screen'),
@@ -56,6 +64,7 @@ class ChineseVocabGame {
             
             // 結果画面のボタン
             retryBtn: document.getElementById('retry-btn'),
+            nextSetBtn: document.getElementById('next-set-btn'),
             pairLevelBtn: document.getElementById('pair-level-btn'),
             otherLevelBtn: document.getElementById('other-level-btn'),
             homeBtn: document.getElementById('home-btn')
@@ -70,6 +79,27 @@ class ChineseVocabGame {
         this.initializeSounds();
         
         this.initializeGame();
+    }
+
+    // ===== スコア→フォルダ対応 =====
+    scoreToFolder(score) {
+        if (score === 5) return 'images0';
+        if (score === 4) return 'images20';
+        if (score === 3) return 'images50';
+        if (score === 2) return 'images70';
+        return 'images100';
+    }
+
+    // ===== 画像パス生成 =====
+    pad2(n) { 
+        return String(n).padStart(2, '0'); 
+    }
+    
+    imagePathBy(folder, index) {
+        const id = this.pad2(index); // "01".."05"
+        if (folder === 'images0') return `./${folder}/${id}.png`;
+        const percent = folder.replace('images', ''); // "20"|"50"|"70"|"100"
+        return `./${folder}/${id}_mosaic_${percent}.png`;
     }
 
     initializeSounds() {
@@ -154,18 +184,26 @@ class ChineseVocabGame {
     }
     
     startLevel(level) {
+        this.startNewSet(level);
+    }
+    
+    // ===== 5問でプレイを開始（新しいセットを作るときだけ呼ぶ）=====
+    startNewSet(level) {
         this.gameState.selectedLevel = level;
         this.gameState.currentQuestion = 0;
         this.gameState.correctAnswers = 0;
         this.gameState.totalQuestions = gameRules.settings.questionsPerLevel;
         this.gameState.isGameActive = true;
         
+        // セッション状態を更新
+        this.quizSession.level = level;
+        this.quizSession.questions = this.generateQuestionsFromHSKLevel();
+        this.quizSession.attempt = 0;
+        this.quizSession.imageIndex = null; // 初回結果で決める
+        
         // レベル設定を取得
         const levelConfig = gameRules.settings.levels[level];
         this.gameState.hskLevel = levelConfig.hskLevel;
-        
-        // 問題生成（HSK等級から選択）
-        this.generateQuestionsFromHSKLevel();
         
         // UI更新
         this.elements.currentLevel.textContent = levelConfig.name;
@@ -177,10 +215,12 @@ class ChineseVocabGame {
     
     generateQuestionsFromHSKLevel() {
         // 指定されたHSK等級から問題を生成
-        this.gameState.questions = gameRules.getRandomWordsFromHSKLevel(
+        const questions = gameRules.getRandomWordsFromHSKLevel(
             this.gameState.hskLevel, 
             this.gameState.totalQuestions
         );
+        this.gameState.questions = questions;
+        return questions;
     }
     
     loadQuestion() {
@@ -486,57 +526,30 @@ class ChineseVocabGame {
             const correctCount = this.gameState.correctAnswers;
             const totalQuestions = this.gameState.totalQuestions;
             
-            let imageFolder;
-            if (correctCount === totalQuestions) {
-                // 5問正解
-                imageFolder = 'images0';
-            } else if (correctCount === 4) {
-                // 4問正解
-                imageFolder = 'images20';
-            } else if (correctCount === 3) {
-                // 3問正解
-                imageFolder = 'images50';
-            } else if (correctCount === 2) {
-                // 2問正解
-                imageFolder = 'images70';
-            } else {
-                // 1問正解または全問不正解
-                imageFolder = 'images100';
+            // 初回終了時だけ、固定画像番号を決める（1..5）
+            if (this.quizSession.imageIndex == null) {
+                this.quizSession.imageIndex = Math.floor(Math.random() * 5) + 1;
+                console.log(`固定画像番号決定: ${this.quizSession.imageIndex}`);
             }
             
-            console.log(`正解数: ${correctCount}/${totalQuestions}, 選択フォルダ: ${imageFolder}`);
+            const folder = this.scoreToFolder(correctCount);
+            const imgSrc = this.imagePathBy(folder, this.quizSession.imageIndex);
             
-            // フォルダ内の画像ファイルを取得
-            const allImages = await this.getImagesFromFolder(imageFolder);
+            console.log(`正解数: ${correctCount}/${totalQuestions}, 選択フォルダ: ${folder}, 画像番号: ${this.quizSession.imageIndex}`);
             
-            if (allImages.length > 0) {
-                let availableImages = [...allImages];
-                
-                // 前回表示した画像を除外（2つ以上画像がある場合のみ）
-                if (allImages.length > 1 && this.lastDisplayedImages[imageFolder]) {
-                    availableImages = allImages.filter(img => img !== this.lastDisplayedImages[imageFolder]);
-                }
-                
-                // 利用可能な画像がない場合は全画像から選択
-                if (availableImages.length === 0) {
-                    availableImages = [...allImages];
-                }
-                
-                // ランダムに画像を選択
-                const randomImage = availableImages[Math.floor(Math.random() * availableImages.length)];
-                
-                // 前回表示画像として記録
-                this.lastDisplayedImages[imageFolder] = randomImage;
-                
-                this.elements.rewardImage.src = randomImage;
-                this.elements.rewardImage.style.display = 'block';
-                
-                console.log(`表示画像: ${randomImage} (利用可能: ${availableImages.length}/${allImages.length})`);
-            } else {
-                // 画像が見つからない場合は非表示
-                this.elements.rewardImage.style.display = 'none';
-                console.log(`${imageFolder}に画像が見つかりません`);
-            }
+            this.elements.rewardImage.src = imgSrc;
+            this.elements.rewardImage.style.display = 'block';
+            this.elements.rewardImage.loading = 'eager';
+            this.elements.rewardImage.decoding = 'sync';
+            
+            // エラーハンドリング
+            this.elements.rewardImage.onerror = () => {
+                console.log(`画像読み込みエラー: ${imgSrc}`);
+                // 念のためフォールバック（必ず存在する1枚を指定）
+                this.elements.rewardImage.src = this.imagePathBy('images100', this.quizSession.imageIndex);
+            };
+            
+            console.log(`表示画像: ${imgSrc}`);
             
         } catch (error) {
             console.log('画像表示エラー:', error);
@@ -544,153 +557,22 @@ class ChineseVocabGame {
         }
     }
     
-    async getImagesFromFolder(folderName) {
-        const validImages = [];
-        
-        // まず設定ファイルから画像リストを取得を試行
-        try {
-            const configImages = await this.loadImageConfig(folderName);
-            if (configImages.length > 0) {
-                console.log(`📄 設定ファイルから${configImages.length}個の画像を読み込み`);
-                for (const imageName of configImages) {
-                    const imagePath = `./${folderName}/${imageName}`;
-                    try {
-                        const exists = await this.checkImageExists(imagePath);
-                        if (exists) {
-                            validImages.push(imagePath);
-                            console.log(`✓ 画像確認: ${imagePath}`);
-                        }
-                    } catch (e) {
-                        console.log(`✗ 画像が見つかりません: ${imagePath}`);
-                    }
-                }
-            }
-        } catch (e) {
-            console.log('設定ファイルが読み込めません。自動検出を実行します。');
-        }
-        
-        // 自動検出実行（設定ファイルが読めない場合、または auto_detect が有効な場合）
-        if (validImages.length === 0) {
-            validImages.push(...await this.autoDetectImages(folderName));
-        }
-        
-        console.log(`📁 ${folderName}: 合計${validImages.length}個の画像を検出`);
-        return validImages;
-    }
-    
-    async loadImageConfig(folderName) {
-        // 設定ファイルの読み込みを試行
-        try {
-            const response = await fetch('./images_config.json');
-            if (response.ok) {
-                const config = await response.json();
-                return config[folderName] || [];
-            }
-        } catch (e) {
-            // 設定ファイルがない場合は自動検出にフォールバック
-        }
-        
-        // 新しいフォルダ構造用のデフォルト設定
-        if (folderName.startsWith('images')) {
-            const defaultImages = {
-                'images0': ['01.png', '02.png', '03.png', '04.png', '05.png'],
-                'images20': ['01_mosaic_20.png', '02_mosaic_20.png', '03_mosaic_20.png', '04_mosaic_20.png', '05_mosaic_20.png'],
-                'images50': ['01_mosaic_50.png', '02_mosaic_50.png', '03_mosaic_50.png', '04_mosaic_50.png', '05_mosaic_50.png'],
-                'images70': ['01_mosaic_70.png', '02_mosaic_70.png', '03_mosaic_70.png', '04_mosaic_70.png', '05_mosaic_70.png'],
-                'images100': ['01_mosaic_100.png', '02_mosaic_100.png', '03_mosaic_100.png', '04_mosaic_100.png', '05_mosaic_100.png']
-            };
-            return defaultImages[folderName] || [];
-        }
-        
-        return [];
-    }
-    
-    async autoDetectImages(folderName) {
-        console.log(`🔍 ${folderName}の自動検出を開始...`);
-        
-        // 効率的なファイル名パターン（より実用的に絞り込み）
-        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-        
-        // 新しいフォルダ構造に対応したパターン
-        let basePatterns = [];
-        
-        if (folderName.startsWith('images')) {
-            // images0, images20, images50, images70, images100フォルダ用
-            basePatterns = [
-                // 連番パターン（01, 02, 03, 04, 05）
-                '01', '02', '03', '04', '05',
-                // モザイク付きパターン（01_mosaic_20, 02_mosaic_50等）
-                '01_mosaic_20', '02_mosaic_20', '03_mosaic_20', '04_mosaic_20', '05_mosaic_20',
-                '01_mosaic_50', '02_mosaic_50', '03_mosaic_50', '04_mosaic_50', '05_mosaic_50',
-                '01_mosaic_70', '02_mosaic_70', '03_mosaic_70', '04_mosaic_70', '05_mosaic_70',
-                '01_mosaic_100', '02_mosaic_100', '03_mosaic_100', '04_mosaic_100', '05_mosaic_100'
-            ];
-        } else {
-            // 既存のgohoubi_images, zannen_images用（後方互換性）
-            basePatterns = [
-                // 既存ファイル（確実に存在するもの）
-                'akagami_image', 'syoujikifudousann', 'lastmaile', 'taigannnogaji_megane',
-                'strong_mosaic_akagami_image', 'strong_mosaic_syoujikifudousann', 
-                'strong_mosaic_lastmaile', 'strong_mosaic_generated_image',
-                
-                // シンプルな連番パターン（推奨）
-                '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
-                '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-                
-                // 一般的なパターン
-                'image1', 'image2', 'image3', 'image4', 'image5',
-                'img1', 'img2', 'img3', 'img4', 'img5',
-                'photo1', 'photo2', 'photo3', 'photo4', 'photo5',
-                
-                // フォルダ特化パターン
-                ...(folderName === 'gohoubi_images' ? 
-                    ['reward1', 'reward2', 'reward3', 'reward4', 'reward5', 'gohoubi1', 'gohoubi2', 'gohoubi3'] :
-                    ['fail1', 'fail2', 'fail3', 'fail4', 'fail5', 'zannen1', 'zannen2', 'zannen3']
-                )
-            ];
-        }
-        
-        const validImages = [];
-        let checkedCount = 0;
-        const maxChecks = 100; // チェック上限
-        
-        for (const baseName of basePatterns) {
-            if (checkedCount >= maxChecks) break;
-            
-            for (const ext of imageExtensions) {
-                if (checkedCount >= maxChecks) break;
-                
-                const fileName = `${baseName}.${ext}`;
-                const imagePath = `./${folderName}/${fileName}`;
-                checkedCount++;
-                
-                try {
-                    const exists = await this.checkImageExists(imagePath);
-                    if (exists) {
-                        validImages.push(imagePath);
-                        console.log(`✓ 自動検出: ${imagePath}`);
-                    }
-                } catch (e) {
-                    // 存在しない場合は無視
-                }
-            }
-        }
-        
-        console.log(`🔍 自動検出完了: ${checkedCount}個チェック → ${validImages.length}個発見`);
-        return validImages;
-    }
-    
-    checkImageExists(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(true);
-            img.onerror = () => reject(false);
-            img.src = src;
-        });
-    }
+
     
     retryLevel() {
-        this.startLevel(this.gameState.selectedLevel);
+        // ===== 「もう一度」：同じ5問で再挑戦 =====
+        this.quizSession.attempt += 1;
+        this.gameState.currentQuestion = 0;
+        this.gameState.correctAnswers = 0;
+        this.gameState.isGameActive = true;
+        
+        // ★ポイント：新しい5問は作らない！保存済みをそのまま使う
+        this.gameState.questions = this.quizSession.questions;
+        
+        console.log(`再挑戦 ${this.quizSession.attempt}回目 - 固定画像番号: ${this.quizSession.imageIndex}`);
+        
+        this.showScreen('game');
+        this.loadQuestion();
     }
     
     showLevelSelection() {
@@ -757,12 +639,20 @@ class ChineseVocabGame {
             });
         }
 
-        // 結果画面のボタンイベント
-        if (this.elements.retryBtn) {
-            this.elements.retryBtn.addEventListener('click', () => {
-                this.startLevel(this.gameState.selectedLevel);
-            });
-        }
+                    // 結果画面のボタンイベント
+            if (this.elements.retryBtn) {
+                this.elements.retryBtn.addEventListener('click', () => {
+                    this.retryLevel();
+                });
+            }
+
+            // ===== 「次の5問へ」ボタン（新しい5問を作る）=====
+            if (this.elements.nextSetBtn) {
+                this.elements.nextSetBtn = document.getElementById('next-set-btn');
+                this.elements.nextSetBtn.addEventListener('click', () => {
+                    this.startNewSet(this.quizSession.level); // ここでだけ新規5問を生成
+                });
+            }
 
         if (this.elements.pairLevelBtn) {
             this.elements.pairLevelBtn.addEventListener('click', () => {
