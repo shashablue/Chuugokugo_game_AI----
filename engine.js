@@ -456,13 +456,24 @@ class ChineseVocabGame {
     }
     
     showResultMessage(percentage) {
-        if (percentage >= gameRules.settings.passingScore * 100) {
-            // 8割以上 - 褒め言葉
+        const correctCount = this.gameState.correctAnswers;
+        const totalQuestions = this.gameState.totalQuestions;
+        
+        if (correctCount === totalQuestions) {
+            // 全問正解 - 最高の褒め言葉
+            this.elements.praiseChinese.textContent = '太棒了！';
+            this.elements.praiseJapanese.textContent = '完璧です！';
+        } else if (correctCount >= 4) {
+            // 4問以上正解 - 褒め言葉
             const randomPraise = gameRules.praises[Math.floor(Math.random() * gameRules.praises.length)];
             this.elements.praiseChinese.textContent = randomPraise.chinese;
             this.elements.praiseJapanese.textContent = randomPraise.japanese;
+        } else if (correctCount >= 2) {
+            // 2-3問正解 - 軽い励まし
+            this.elements.praiseChinese.textContent = '不错！';
+            this.elements.praiseJapanese.textContent = 'よくできました！';
         } else {
-            // 8割以下 - 励まし
+            // 1問以下 - 励まし
             this.elements.praiseChinese.textContent = '加油！';
             this.elements.praiseJapanese.textContent = '頑張って！';
         }
@@ -471,8 +482,29 @@ class ChineseVocabGame {
     
     async showRandomImage(percentage) {
         try {
-            // 正答率に応じて画像フォルダを選択
-            const imageFolder = percentage >= gameRules.settings.passingScore * 100 ? 'gohoubi_images' : 'zannen_images';
+            // 正解数に応じて画像フォルダを選択
+            const correctCount = this.gameState.correctAnswers;
+            const totalQuestions = this.gameState.totalQuestions;
+            
+            let imageFolder;
+            if (correctCount === totalQuestions) {
+                // 5問正解
+                imageFolder = 'images0';
+            } else if (correctCount === 4) {
+                // 4問正解
+                imageFolder = 'images20';
+            } else if (correctCount === 3) {
+                // 3問正解
+                imageFolder = 'images50';
+            } else if (correctCount === 2) {
+                // 2問正解
+                imageFolder = 'images70';
+            } else {
+                // 1問正解または全問不正解
+                imageFolder = 'images100';
+            }
+            
+            console.log(`正解数: ${correctCount}/${totalQuestions}, 選択フォルダ: ${imageFolder}`);
             
             // フォルダ内の画像ファイルを取得
             const allImages = await this.getImagesFromFolder(imageFolder);
@@ -557,6 +589,19 @@ class ChineseVocabGame {
         } catch (e) {
             // 設定ファイルがない場合は自動検出にフォールバック
         }
+        
+        // 新しいフォルダ構造用のデフォルト設定
+        if (folderName.startsWith('images')) {
+            const defaultImages = {
+                'images0': ['01.png', '02.png', '03.png', '04.png', '05.png'],
+                'images20': ['01_mosaic_20.png', '02_mosaic_20.png', '03_mosaic_20.png', '04_mosaic_20.png', '05_mosaic_20.png'],
+                'images50': ['01_mosaic_50.png', '02_mosaic_50.png', '03_mosaic_50.png', '04_mosaic_50.png', '05_mosaic_50.png'],
+                'images70': ['01_mosaic_70.png', '02_mosaic_70.png', '03_mosaic_70.png', '04_mosaic_70.png', '05_mosaic_70.png'],
+                'images100': ['01_mosaic_100.png', '02_mosaic_100.png', '03_mosaic_100.png', '04_mosaic_100.png', '05_mosaic_100.png']
+            };
+            return defaultImages[folderName] || [];
+        }
+        
         return [];
     }
     
@@ -565,27 +610,45 @@ class ChineseVocabGame {
         
         // 効率的なファイル名パターン（より実用的に絞り込み）
         const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-        const basePatterns = [
-            // 既存ファイル（確実に存在するもの）
-            'akagami_image', 'syoujikifudousann', 'lastmaile', 'taigannnogaji_megane',
-            'strong_mosaic_akagami_image', 'strong_mosaic_syoujikifudousann', 
-            'strong_mosaic_lastmaile', 'strong_mosaic_generated_image',
-            
-            // シンプルな連番パターン（推奨）
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
-            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-            
-            // 一般的なパターン
-            'image1', 'image2', 'image3', 'image4', 'image5',
-            'img1', 'img2', 'img3', 'img4', 'img5',
-            'photo1', 'photo2', 'photo3', 'photo4', 'photo5',
-            
-            // フォルダ特化パターン
-            ...(folderName === 'gohoubi_images' ? 
-                ['reward1', 'reward2', 'reward3', 'reward4', 'reward5', 'gohoubi1', 'gohoubi2', 'gohoubi3'] :
-                ['fail1', 'fail2', 'fail3', 'fail4', 'fail5', 'zannen1', 'zannen2', 'zannen3']
-            )
-        ];
+        
+        // 新しいフォルダ構造に対応したパターン
+        let basePatterns = [];
+        
+        if (folderName.startsWith('images')) {
+            // images0, images20, images50, images70, images100フォルダ用
+            basePatterns = [
+                // 連番パターン（01, 02, 03, 04, 05）
+                '01', '02', '03', '04', '05',
+                // モザイク付きパターン（01_mosaic_20, 02_mosaic_50等）
+                '01_mosaic_20', '02_mosaic_20', '03_mosaic_20', '04_mosaic_20', '05_mosaic_20',
+                '01_mosaic_50', '02_mosaic_50', '03_mosaic_50', '04_mosaic_50', '05_mosaic_50',
+                '01_mosaic_70', '02_mosaic_70', '03_mosaic_70', '04_mosaic_70', '05_mosaic_70',
+                '01_mosaic_100', '02_mosaic_100', '03_mosaic_100', '04_mosaic_100', '05_mosaic_100'
+            ];
+        } else {
+            // 既存のgohoubi_images, zannen_images用（後方互換性）
+            basePatterns = [
+                // 既存ファイル（確実に存在するもの）
+                'akagami_image', 'syoujikifudousann', 'lastmaile', 'taigannnogaji_megane',
+                'strong_mosaic_akagami_image', 'strong_mosaic_syoujikifudousann', 
+                'strong_mosaic_lastmaile', 'strong_mosaic_generated_image',
+                
+                // シンプルな連番パターン（推奨）
+                '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
+                '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
+                
+                // 一般的なパターン
+                'image1', 'image2', 'image3', 'image4', 'image5',
+                'img1', 'img2', 'img3', 'img4', 'img5',
+                'photo1', 'photo2', 'photo3', 'photo4', 'photo5',
+                
+                // フォルダ特化パターン
+                ...(folderName === 'gohoubi_images' ? 
+                    ['reward1', 'reward2', 'reward3', 'reward4', 'reward5', 'gohoubi1', 'gohoubi2', 'gohoubi3'] :
+                    ['fail1', 'fail2', 'fail3', 'fail4', 'fail5', 'zannen1', 'zannen2', 'zannen3']
+                )
+            ];
+        }
         
         const validImages = [];
         let checkedCount = 0;
