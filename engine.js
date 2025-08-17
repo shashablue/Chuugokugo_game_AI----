@@ -189,21 +189,27 @@ class ChineseVocabGame {
     
     // ===== 5問でプレイを開始（新しいセットを作るときだけ呼ぶ）=====
     startNewSet(level) {
+        console.log(`=== 新しいセット開始 ===`);
+        console.log(`選択されたレベル: ${level}`);
+        
         this.gameState.selectedLevel = level;
         this.gameState.currentQuestion = 0;
         this.gameState.correctAnswers = 0;
         this.gameState.totalQuestions = gameRules.settings.questionsPerLevel;
         this.gameState.isGameActive = true;
         
+        // レベル設定を取得（先に取得）
+        const levelConfig = gameRules.settings.levels[level];
+        this.gameState.hskLevel = levelConfig.hskLevel;
+        
+        console.log(`レベル設定:`, levelConfig);
+        console.log(`HSK等級: ${this.gameState.hskLevel}`);
+        
         // セッション状態を更新
         this.quizSession.level = level;
         this.quizSession.questions = this.generateQuestionsFromHSKLevel();
         this.quizSession.attempt = 0;
         this.quizSession.imageIndex = null; // 初回結果で決める
-        
-        // レベル設定を取得
-        const levelConfig = gameRules.settings.levels[level];
-        this.gameState.hskLevel = levelConfig.hskLevel;
         
         // UI更新
         this.elements.currentLevel.textContent = levelConfig.name;
@@ -215,10 +221,18 @@ class ChineseVocabGame {
     
     generateQuestionsFromHSKLevel() {
         // 指定されたHSK等級から問題を生成
+        console.log(`=== 問題生成デバッグ ===`);
+        console.log(`HSK等級: ${this.gameState.hskLevel}`);
+        console.log(`問題数: ${this.gameState.totalQuestions}`);
+        
         const questions = gameRules.getRandomWordsFromHSKLevel(
             this.gameState.hskLevel, 
             this.gameState.totalQuestions
         );
+        
+        console.log(`生成された問題:`, questions);
+        console.log(`問題数確認: ${questions.length}`);
+        
         this.gameState.questions = questions;
         return questions;
     }
@@ -230,6 +244,18 @@ class ChineseVocabGame {
         }
         
         const question = this.gameState.questions[this.gameState.currentQuestion];
+        
+        // デバッグ: 問題が正しく読み込まれているか確認
+        console.log(`=== 問題読み込みデバッグ ===`);
+        console.log(`現在の問題番号: ${this.gameState.currentQuestion}`);
+        console.log(`問題オブジェクト:`, question);
+        console.log(`問題数: ${this.gameState.questions.length}`);
+        
+        if (!question) {
+            console.error('問題が見つかりません！');
+            return;
+        }
+        
         const level = this.gameState.selectedLevel;
         const levelConfig = gameRules.settings.levels[level];
         
@@ -309,9 +335,15 @@ class ChineseVocabGame {
             console.warn('選択肢の重複が発生しました:', choices);
             console.warn('重複除去後:', uniqueChoices);
             
-            // 不足分を他のセットから補完
-            const allWords = gameRules.getAllVocabulary();
-            const additionalOptions = gameRules.generateWrongOptions(question, allWords, 4 - uniqueChoices.length);
+            // 不足分を他のHSK等級から補完
+            const additionalOptions = [];
+            for (let hskLevel = 1; hskLevel <= 3; hskLevel++) {
+                if (hskLevel !== this.gameState.hskLevel) {
+                    const otherLevelWords = gameRules.getVocabularyByHSKLevel(hskLevel);
+                    const additional = gameRules.generateWrongOptions(question, otherLevelWords, 4 - uniqueChoices.length);
+                    additionalOptions.push(...additional);
+                }
+            }
             
             // 追加の選択肢も重複チェック
             additionalOptions.forEach(option => {
@@ -356,7 +388,15 @@ class ChineseVocabGame {
     }
     
     selectAnswer(selectedIndex) {
-        if (!this.gameState.isGameActive) return;
+        console.log(`=== 回答選択デバッグ ===`);
+        console.log(`選択されたインデックス: ${selectedIndex}`);
+        console.log(`正解インデックス: ${this.correctIndex}`);
+        console.log(`ゲームアクティブ: ${this.gameState.isGameActive}`);
+        
+        if (!this.gameState.isGameActive) {
+            console.log('ゲームがアクティブではありません');
+            return;
+        }
         
         // 自動再生タイマーをクリア
         if (this.autoPlayTimeout) {
@@ -370,6 +410,7 @@ class ChineseVocabGame {
         });
         
         const isCorrect = selectedIndex === this.correctIndex;
+        console.log(`正解判定: ${isCorrect}`);
         
         // 視覚的フィードバック
         this.elements.choiceBtns[selectedIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
