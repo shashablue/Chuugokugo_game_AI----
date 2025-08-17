@@ -85,8 +85,9 @@ const gameRules = {
         if (typeof getHSKVocabulary === 'function') {
             return getHSKVocabulary(hskLevel);
         }
-        // フォールバック：従来のセットデータ（開発用）
-        return this.vocabularySets[`set${Math.min(hskLevel, 3)}`] || [];
+        // フォールバック：空配列を返す
+        console.warn(`HSK${hskLevel}級の語彙データが見つかりません`);
+        return [];
     },
     
     // 指定HSK等級からランダムに語彙を選択するメソッド
@@ -100,39 +101,7 @@ const gameRules = {
         return shuffled.slice(0, count);
     },
     
-    // 全語彙を取得するヘルパーメソッド（後方互換性のため）
-    getAllVocabulary() {
-        // HSK語彙データベースが利用可能な場合
-        if (typeof getAllHSKVocabulary === 'function') {
-            return getAllHSKVocabulary();
-        }
-        
-        // フォールバック：従来のセットデータ
-        const allWords = [];
-        Object.values(this.vocabularySets).forEach(setWords => {
-            allWords.push(...setWords);
-        });
-        return allWords;
-    },
-    
-    // 指定セットの語彙を取得（後方互換性のため）
-    getVocabularyBySet(setNumber) {
-        return this.vocabularySets[`set${setNumber}`] || [];
-    },
-    
-    // 指定セットからランダムに語彙を選択するメソッド（後方互換性のため）
-    getRandomWordsFromSet(setNumber, count = 3) {
-        const setWords = this.getVocabularyBySet(setNumber);
-        const shuffled = setWords.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    },
-    
-    // ランダムに語彙を選択するメソッド（後方互換性のため）
-    getRandomWords(count = 3) {
-        const allWords = this.getAllVocabulary();
-        const shuffled = allWords.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    },
+
     
     // 正解数に応じた画像フォルダを取得するメソッド
     getImageFolderByCorrectCount(correctCount, totalQuestions = 5) {
@@ -198,50 +167,5 @@ const gameRules = {
         }
         
         return selectedWords.map(word => word.japanese);
-    },
-
-    // セット別語彙データベース（後方互換性のため）
-    vocabularySets: {
-        // セット1: 基本語彙
-        set1: [
-            { id: "jia", chinese: "家", pinyin: "jiā", japanese: "家", category: "基本" },
-            { id: "ren", chinese: "人", pinyin: "rén", japanese: "人", category: "基本" },
-            { id: "shui", chinese: "水", pinyin: "shuǐ", japanese: "水", category: "基本" },
-            { id: "huo", chinese: "火", pinyin: "huǒ", japanese: "火", category: "基本" },
-            { id: "shan", chinese: "山", pinyin: "shān", japanese: "山", category: "基本" },
-            { id: "che", chinese: "车", pinyin: "chē", japanese: "車", category: "基本" },
-            { id: "shu", chinese: "书", pinyin: "shū", japanese: "本", category: "基本" },
-            { id: "dianhua", chinese: "电话", pinyin: "diàn huà", japanese: "電話", category: "基本" },
-            { id: "yiyuan", chinese: "医院", pinyin: "yī yuàn", japanese: "病院", category: "基本" },
-            { id: "xuexiao", chinese: "学校", pinyin: "xué xiào", japanese: "学校", category: "基本" }
-        ],
-        
-        // セット2: 色・数字
-        set2: [
-            { id: "hong", chinese: "红色", pinyin: "hóng sè", japanese: "赤", category: "色" },
-            { id: "lan", chinese: "蓝色", pinyin: "lán sè", japanese: "青", category: "色" },
-            { id: "huang", chinese: "黄色", pinyin: "huáng sè", japanese: "黄色", category: "色" },
-            { id: "lv", chinese: "绿色", pinyin: "lǜ sè", japanese: "緑", category: "色" },
-            { id: "bai", chinese: "白色", pinyin: "bái sè", japanese: "白", category: "色" },
-            { id: "yi", chinese: "一", pinyin: "yī", japanese: "一", category: "数字" },
-            { id: "er", chinese: "二", pinyin: "èr", japanese: "二", category: "数字" },
-            { id: "san", chinese: "三", pinyin: "sān", japanese: "三", category: "数字" },
-            { id: "si", chinese: "四", pinyin: "sì", japanese: "四", category: "数字" },
-            { id: "wu", chinese: "五", pinyin: "wǔ", japanese: "五", category: "数字" }
-        ],
-        
-        // セット3: 動物・挨拶
-        set3: [
-            { id: "gou", chinese: "狗", pinyin: "gǒu", japanese: "犬", category: "動物" },
-            { id: "mao", chinese: "猫", pinyin: "māo", japanese: "猫", category: "動物" },
-            { id: "niao", chinese: "鸟", pinyin: "niǎo", japanese: "鳥", category: "動物" },
-            { id: "yu", chinese: "鱼", pinyin: "yú", japanese: "魚", category: "動物" },
-            { id: "ma", chinese: "马", pinyin: "mǎ", japanese: "馬", category: "動物" },
-            { id: "nihao", chinese: "你好", pinyin: "nǐ hǎo", japanese: "こんにちは", category: "挨拶" },
-            { id: "xiexie", chinese: "谢谢", pinyin: "xiè xiè", japanese: "ありがとう", category: "挨拶" },
-            { id: "zaijian", chinese: "再见", pinyin: "zài jiàn", japanese: "さようなら", category: "挨拶" },
-            { id: "zaoshang", chinese: "早上好", pinyin: "zǎo shàng hǎo", japanese: "おはよう", category: "挨拶" },
-            { id: "wanshang", chinese: "晚上好", pinyin: "wǎn shàng hǎo", japanese: "こんばんは", category: "挨拶" }
-        ]
     }
 }; 
