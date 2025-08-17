@@ -5,7 +5,6 @@ const gameRules = {
     // ゲーム設定
     settings: {
         questionsPerLevel: 5, // 問題数を5問に増加
-        passingScore: 0.8, // 8割
         levels: {
             // HSK1級
             1: { name: "HSK1級-文字", description: "HSK1級語彙を見て日本語を選ぼう", type: "text", hskLevel: 1 },
@@ -18,8 +17,28 @@ const gameRules = {
             // HSK3級
             5: { name: "HSK3級-文字", description: "HSK3級語彙を見て日本語を選ぼう", type: "text", hskLevel: 3 },
             6: { name: "HSK3級-音声", description: "HSK3級語彙の音声を聞いて日本語を選ぼう", type: "audio", hskLevel: 3 },
-            
-            
+        }
+    },
+    
+    // 画像表示設定（正解数ベース）
+    imageSettings: {
+        // 正解数に応じた画像フォルダ設定
+        correctCountToFolder: {
+            5: 'images0',    // 5問正解：クリアな画像
+            4: 'images20',   // 4問正解：軽いモザイク
+            3: 'images50',   // 3問正解：中程度のモザイク
+            2: 'images70',   // 2問正解：強いモザイク
+            1: 'images100',  // 1問正解：最も強いモザイク
+            0: 'images100'   // 全問不正解：最も強いモザイク
+        },
+        
+        // 各フォルダの画像ファイル名
+        folderImages: {
+            'images0': ['01.png', '02.png', '03.png', '04.png', '05.png'],
+            'images20': ['01_mosaic_20.png', '02_mosaic_20.png', '03_mosaic_20.png', '04_mosaic_20.png', '05_mosaic_20.png'],
+            'images50': ['01_mosaic_50.png', '02_mosaic_50.png', '03_mosaic_50.png', '04_mosaic_50.png', '05_mosaic_50.png'],
+            'images70': ['01_mosaic_70.png', '02_mosaic_70.png', '03_mosaic_70.png', '04_mosaic_70.png', '05_mosaic_70.png'],
+            'images100': ['01_mosaic_100.png', '02_mosaic_100.png', '03_mosaic_100.png', '04_mosaic_100.png', '05_mosaic_100.png']
         }
     },
     
@@ -31,6 +50,34 @@ const gameRules = {
         { chinese: "厉害！", pinyin: "lì hài!", japanese: "すごい！" },
         { chinese: "完美！", pinyin: "wán měi!", japanese: "完璧！" }
     ],
+    
+    // 正解数に応じたメッセージ設定
+    resultMessages: {
+        // 全問正解
+        perfect: {
+            chinese: "太棒了！",
+            pinyin: "tài bàng le!",
+            japanese: "完璧です！"
+        },
+        // 4問正解（通常の褒め言葉からランダム選択）
+        excellent: {
+            chinese: "很好！",
+            pinyin: "hěn hǎo!",
+            japanese: "とても良いです！"
+        },
+        // 2-3問正解
+        good: {
+            chinese: "不错！",
+            pinyin: "bù cuò!",
+            japanese: "よくできました！"
+        },
+        // 1問以下
+        encourage: {
+            chinese: "加油！",
+            pinyin: "jiā yóu!",
+            japanese: "頑張って！"
+        }
+    },
     
     // HSK等級別語彙を取得
     getVocabularyByHSKLevel(hskLevel) {
@@ -85,6 +132,29 @@ const gameRules = {
         const allWords = this.getAllVocabulary();
         const shuffled = allWords.sort(() => 0.5 - Math.random());
         return shuffled.slice(0, count);
+    },
+    
+    // 正解数に応じた画像フォルダを取得するメソッド
+    getImageFolderByCorrectCount(correctCount, totalQuestions = 5) {
+        return this.imageSettings.correctCountToFolder[correctCount] || 'images100';
+    },
+    
+    // 指定フォルダの画像ファイルリストを取得するメソッド
+    getImagesForFolder(folderName) {
+        return this.imageSettings.folderImages[folderName] || [];
+    },
+    
+    // 正解数に応じたメッセージを取得するメソッド
+    getResultMessageByCorrectCount(correctCount, totalQuestions = 5) {
+        if (correctCount === totalQuestions) {
+            return this.resultMessages.perfect;
+        } else if (correctCount >= 4) {
+            return this.resultMessages.excellent;
+        } else if (correctCount >= 2) {
+            return this.resultMessages.good;
+        } else {
+            return this.resultMessages.encourage;
+        }
     },
     
     // 間違い選択肢を生成するメソッド（HSK等級対応）
